@@ -1,0 +1,51 @@
+{
+  "model": "EfficientNet-B3 classifier anti-overfit",
+  "best_epoch": 26,
+  "best_val_macro_f1_no_tta": 0.82821,
+  "final_val_no_tta": {
+    "acc": 0.83325,
+    "macro_f1": 0.82821,
+    "weighted_f1": 0.83183
+  },
+  "final_val_tta": {
+    "acc": 0.83468,
+    "macro_f1": 0.83049,
+    "weighted_f1": 0.83377
+  },
+  "final_test_no_tta": {
+    "acc": 0.83,
+    "macro_f1": 0.82876,
+    "weighted_f1": 0.82846
+  },
+  "final_test_tta": {
+    "acc": 0.83071,
+    "macro_f1": 0.82971,
+    "weighted_f1": 0.82928
+  },
+  "classes": [
+    "Healthy",
+    "Infected_Bacterial_Erysipelas",
+    "Infected_Bacterial_Greasy_Pig_Disease",
+    "Infected_Environmental_Dermatitis",
+    "Infected_Environmental_Sunburn",
+    "Infected_Fungal_Pityriasis_Rosea",
+    "Infected_Fungal_Ringworm",
+    "Infected_Parasitic_Mange",
+    "Infected_Viral_Foot_and_Mouth_Disease",
+    "Infected_Viral_Swinepox"
+  ],
+  "train_counts": {
+    "Healthy": 1775,
+    "Infected_Bacterial_Erysipelas": 1850,
+    "Infected_Bacterial_Greasy_Pig_Disease": 1735,
+    "Infected_Environmental_Dermatitis": 1580,
+    "Infected_Environmental_Sunburn": 1785,
+    "Infected_Fungal_Pityriasis_Rosea": 1695,
+    "Infected_Fungal_Ringworm": 1655,
+    "Infected_Parasitic_Mange": 1895,
+    "Infected_Viral_Foot_and_Mouth_Disease": 1705,
+    "Infected_Viral_Swinepox": 1825
+  },
+  "output_dir": "D:\\CV_NEW\\output_local",
+  "checkpoint": "D:\\CV_NEW\\output_local\\best_model.pth"
+}

@@ -1,11 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   GLOBAL DESIGN TOKENS & ANIMATIONS
+   Pig Diagnostic Expert System - v8.0
+============================================================ */
 :root {
-  font-family: 'IBM Plex Sans', 'Segoe UI', Tahoma, sans-serif;
+  font-family: 'Inter', 'IBM Plex Sans', 'Segoe UI', Tahoma, sans-serif;
   color: #14231d;
-  background: #f5f8f6;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -16,27 +21,111 @@
   box-sizing: border-box;
 }
 
+/* Background của trang */
+.bg-page {
+  background:
+    radial-gradient(900px 450px at 90% -5%, rgba(16, 185, 129, 0.08), transparent 60%),
+    radial-gradient(700px 380px at -5% 100%, rgba(5, 150, 105, 0.10), transparent 55%),
+    linear-gradient(160deg, #f7fbf8 0%, #f2f5f1 50%, #edf2eb 100%);
+  min-height: 100vh;
+}
+
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(1100px 520px at 88% -12%, rgba(181, 107, 67, 0.18), transparent 60%),
-    radial-gradient(860px 460px at -5% 100%, rgba(47, 95, 74, 0.2), transparent 55%),
-    linear-gradient(165deg, #f7fbf8 0%, #f2f4f0 45%, #ecf1eb 100%);
 }
 
-.page-shell {
-  animation: rise-in 420ms ease-out;
+/* ============================================================
+   ANIMATIONS
+============================================================ */
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(12px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes progress-fill {
+  from { width: 0%; }
+}
+
+/* Utility animation classes */
+.animate-fade-in   { animation: fade-in   350ms ease-out both; }
+.animate-slide-up  { animation: slide-up  400ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.animate-slide-in-right { animation: slide-in-right 300ms ease-out both; }
+.animate-spin      { animation: spin 0.8s linear infinite; }
+.animate-pulse     { animation: pulse-soft 1.5s ease-in-out infinite; }
+
+/* Delay utilities */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+
+/* ============================================================
+   CUSTOM SCROLLBAR
+============================================================ */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+
+/* ============================================================
+   RANGE INPUT STYLING
+============================================================ */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 99px;
+  background: #e2e8f0;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #059669;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(5, 150, 105, 0.35);
+  border: 2px solid white;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 3px 12px rgba(5, 150, 105, 0.5);
+}
+
+/* ============================================================
+   LEAFLET MAP OVERRIDES
+============================================================ */
+.leaflet-container { font-family: 'Inter', sans-serif !important; }
+.leaflet-popup-content-wrapper {
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15) !important;
+  border: 1px solid #e2e8f0 !important;
+}
+.leaflet-popup-tip { display: none; }

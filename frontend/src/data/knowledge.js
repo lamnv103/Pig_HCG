@@ -142,6 +142,26 @@ export const symptomCatalog = [
   {
     "id": "sym_chet_nhanh_hang_loat",
     "question": "Heo chet hang loat, ty le chet rat cao trong 1-3 ngay khong?"
+  },
+  {
+    "id": "sym_da_vong_tron_hong",
+    "question": "Da lợn có các vòng tròn hồng/đỏ, rìa nổi viền rõ, lan rộng dần ra xung quanh không?"
+  },
+  {
+    "id": "sym_da_vay_tron_rung_long",
+    "question": "Da lợn có vảy tròn, rụng lông thành mảng tròn, ngứa nhẹ (nấm vòng) không?"
+  },
+  {
+    "id": "sym_mun_dau_mu_dong_vay",
+    "question": "Da lợn có mụn nước nhỏ → vỡ → đóng vảy nâu đen rải rác khắp thân không?"
+  },
+  {
+    "id": "sym_da_bong_ro_vung_ho",
+    "question": "Vùng da hở (tai, lưng) có đỏ tấy, phồng rộp, bong tróc sau khi tiếp xúc nắng gay gắt không?"
+  },
+  {
+    "id": "sym_da_viem_do_nut_moi",
+    "question": "Da lợn có viêm đỏ, nứt nẻ, ẩm ướt ở vùng tiếp xúc đất/nền ẩm (bụng, khoeo chân) không?"
   }
 ];
 
@@ -475,6 +495,61 @@ export const diseaseCatalog = [
     "prevention": "Giảm trầy xước, vệ sinh chuồng và kiểm soát bội nhiễm.",
     "treatment": "Kháng sinh, sát trùng và chăm sóc da theo thú y.",
     "cf_threshold": 0.8
+  },
+  {
+    "id": "dis_env_dermatitis",
+    "name": "Viêm da do môi trường",
+    "group": "skin",
+    "age_focus": "mọi lứa",
+    "hallmark": "Da viêm đỏ, nứt nẻ, ẩm ướt ở vùng tiếp xúc nền chuồng bẩn.",
+    "cause": "Tiếp xúc kéo dài với nền ẩm, phân nước, hoặc chất tẩy rửa gây kích ứng.",
+    "prevention": "Giữ nền chuồng khô ráo, sạch sẽ; giảm mật độ nuôi; vệ sinh định kỳ.",
+    "treatment": "Làm sạch và sát trùng vùng da tổn thương, bôi kem kháng viêm/kháng khuẩn theo hướng dẫn thú y; cải thiện môi trường nuôi.",
+    "cf_threshold": 0.65
+  },
+  {
+    "id": "dis_sunburn",
+    "name": "Cháy nắng trên da (Sunburn)",
+    "group": "skin",
+    "age_focus": "mọi lứa, đặc biệt lợn da trắng/hồng",
+    "hallmark": "Da đỏ, phồng rộp, bong tróc ở vùng hở sau tiếp xúc nắng mạnh.",
+    "cause": "Bức xạ UV cường độ cao chiếu trực tiếp lên da thiếu sắc tố melanin.",
+    "prevention": "Cung cấp bóng râm đầy đủ, tránh chăn thả lúc nắng gắt 10h-15h; bôi kem chống nắng vật nuôi nếu cần.",
+    "treatment": "Chuyển lợn vào bóng râm ngay; chườm mát; bôi thuốc làm dịu (aloe vera thú y) và chống nhiễm trùng vết phồng rộp.",
+    "cf_threshold": 0.70
+  },
+  {
+    "id": "dis_pityriasis_rosea",
+    "name": "Nấm hồng da (Pityriasis Rosea)",
+    "group": "skin",
+    "age_focus": "heo con - heo thịt (dưới 14 tuần)",
+    "hallmark": "Các vòng tròn hồng/đỏ nổi rõ rìa, lan ra ngoài, thường ở bụng và sườn.",
+    "cause": "Nguyên nhân chưa rõ hoàn toàn; nghi ngờ liên quan đến yếu tố di truyền và một số virus.",
+    "prevention": "Không có biện pháp phòng đặc hiệu; vệ sinh chuồng và giảm stress.",
+    "treatment": "Thường tự khỏi trong 6-8 tuần. Điều trị hỗ trợ: giữ da sạch, tránh bội nhiễm. Tham khảo thú y nếu tình trạng nặng.",
+    "cf_threshold": 0.65
+  },
+  {
+    "id": "dis_ringworm",
+    "name": "Nấm da hắc lào (Dermatophytosis / Ringworm)",
+    "group": "skin",
+    "age_focus": "mọi lứa",
+    "hallmark": "Vảy tròn rụng lông thành mảng, ngứa nhẹ, lan rộng dần.",
+    "cause": "Nấm Microsporum hoặc Trichophyton xâm nhiễm lớp keratin da và lông.",
+    "prevention": "Cách ly lợn mới nhập, vệ sinh dụng cụ chăm sóc; tránh độ ẩm cao kéo dài.",
+    "treatment": "Điều trị nấm bằng thuốc chống nấm (griseofulvin, itraconazole) theo thú y; sát trùng dụng cụ và chuồng trại.",
+    "cf_threshold": 0.70
+  },
+  {
+    "id": "dis_swinepox",
+    "name": "Đậu mùa lợn (Swinepox)",
+    "group": "skin",
+    "age_focus": "heo con - heo thịt",
+    "hallmark": "Mụn nước nhỏ → đóng vảy nâu đen rải rác toàn thân, có thể kèm sốt nhẹ.",
+    "cause": "Swinepox virus (Suipoxvirus), lây qua tiếp xúc trực tiếp hoặc ký sinh trùng (rận heo).",
+    "prevention": "Kiểm soát ký sinh trùng (rận, ghẻ); vệ sinh chuồng; cách ly lợn bệnh.",
+    "treatment": "Không có thuốc đặc hiệu; điều trị hỗ trợ, ngăn bội nhiễm bằng sát trùng da và kháng sinh tại chỗ nếu cần.",
+    "cf_threshold": 0.75
   }
 ];
 
@@ -776,4 +851,62 @@ export const rules = [
       "then": "dis_csf",
       "cf": 0.78
     },
+    {
+      "rule_id": "R033",
+      "if": [
+        "sym_da_viem_do_nut_moi"
+      ],
+      "then": "dis_env_dermatitis",
+      "cf": 0.85
+    },
+    {
+      "rule_id": "R034",
+      "if": [
+        "sym_da_bong_ro_vung_ho"
+      ],
+      "then": "dis_sunburn",
+      "cf": 0.90
+    },
+    {
+      "rule_id": "R035",
+      "if": [
+        "sym_da_vong_tron_hong"
+      ],
+      "then": "dis_pityriasis_rosea",
+      "cf": 0.88
+    },
+    {
+      "rule_id": "R036",
+      "if": [
+        "sym_da_vay_tron_rung_long"
+      ],
+      "then": "dis_ringworm",
+      "cf": 0.90
+    },
+    {
+      "rule_id": "R037",
+      "if": [
+        "sym_da_vay_tron_rung_long",
+        "sym_ngua_du_doi"
+      ],
+      "then": "dis_ringworm",
+      "cf": 0.92
+    },
+    {
+      "rule_id": "R038",
+      "if": [
+        "sym_mun_dau_mu_dong_vay"
+      ],
+      "then": "dis_swinepox",
+      "cf": 0.88
+    },
+    {
+      "rule_id": "R039",
+      "if": [
+        "sym_mun_dau_mu_dong_vay",
+        "sym_sot_vua_den_cao"
+      ],
+      "then": "dis_swinepox",
+      "cf": 0.92
+    }
 ];

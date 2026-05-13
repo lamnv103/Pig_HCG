@@ -1,0 +1,16 @@
+                                       precision    recall  f1-score   support
+
+                              Healthy     0.9076    0.9863    0.9453       219
+        Infected_Bacterial_Erysipelas     0.8333    0.8289    0.8311       187
+Infected_Bacterial_Greasy_Pig_Disease     0.7627    0.6490    0.7013       208
+    Infected_Environmental_Dermatitis     0.8069    0.8970    0.8496       233
+       Infected_Environmental_Sunburn     0.7102    0.8208    0.7615       212
+     Infected_Fungal_Pityriasis_Rosea     0.8824    0.7965    0.8372       226
+             Infected_Fungal_Ringworm     0.9198    0.8934    0.9064       244
+             Infected_Parasitic_Mange     0.7337    0.6966    0.7147       178
+Infected_Viral_Foot_and_Mouth_Disease     0.9415    0.8850    0.9124       200
+              Infected_Viral_Swinepox     0.8367    0.8542    0.8454       192
+
+                             accuracy                         0.8347      2099
+                            macro avg     0.8335    0.8308    0.8305      2099
+                         weighted avg     0.8362    0.8347    0.8338      2099

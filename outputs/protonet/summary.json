@@ -1,0 +1,37 @@
+{
+  "model": "ProtoNet + EfficientNet-B0 + Offline Aug",
+  "num_classes": 10,
+  "class_names": [
+    "Healthy",
+    "Infected_Bacterial_Erysipelas",
+    "Infected_Bacterial_Greasy_Pig_Disease",
+    "Infected_Environmental_Dermatitis",
+    "Infected_Environmental_Sunburn",
+    "Infected_Fungal_Pityriasis_Rosea",
+    "Infected_Fungal_Ringworm",
+    "Infected_Parasitic_Mange",
+    "Infected_Viral_Foot_and_Mouth_Disease",
+    "Infected_Viral_Swinepox"
+  ],
+  "best_epoch": 54,
+  "best_val_ep_acc": 0.888,
+  "val": {
+    "f1": 0.8094,
+    "acc": 0.8142
+  },
+  "test": {
+    "f1": 0.813,
+    "acc": 0.8143
+  },
+  "config": {
+    "target_per_class": 2000,
+    "image_size": 224,
+    "embed_dim": 256,
+    "n_way": 5,
+    "k_shot": 5,
+    "n_query": 10,
+    "episodes_per_epoch": 200,
+    "swa_start": 30,
+    "tta_n": 5
+  }
+}

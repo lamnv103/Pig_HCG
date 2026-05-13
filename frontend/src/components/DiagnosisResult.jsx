@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
 import { diseaseById } from '../data/knowledge';
 
-export default function DiagnosisResult({ results, isLoading, onRestart }) {
+function HistoryStatus({ status }) {
+  const statusMap = {
+    saving: { label: 'Đang lưu Supabase...', cls: 'bg-blue-50 text-blue-700 border-blue-100' },
+    saved: { label: 'Đã tự động lưu vào hồ sơ', cls: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+    error: { label: 'Chưa lưu được lịch sử', cls: 'bg-rose-50 text-rose-700 border-rose-100' },
+  };
+
+  const info = statusMap[status];
+  if (!info) return null;
+
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${info.cls}`}>
+      {info.label}
+    </span>
+  );
+}
+
+export default function DiagnosisResult({ results, isLoading, onRestart, historyStatus }) {
   const [expandedId, setExpandedId] = useState(null);
 
   if (isLoading) {
@@ -28,9 +45,12 @@ export default function DiagnosisResult({ results, isLoading, onRestart }) {
     <div className="py-4 animate-fade-in">
       <div className="mb-6 flex items-center justify-between border-b border-slate-100 pb-4">
         <h2 className="text-xl font-bold text-slate-800">📋 Hồ sơ & Phác đồ</h2>
-        <button onClick={onRestart} className="text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline">
-          Khám ca mới
-        </button>
+        <div className="flex items-center gap-3">
+          <HistoryStatus status={historyStatus} />
+          <button onClick={onRestart} className="text-sm font-bold text-emerald-600 hover:text-emerald-500 hover:underline">
+            Khám ca mới
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">
