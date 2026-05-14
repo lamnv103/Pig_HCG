@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { id: 'expert', label: 'Hỏi Bệnh',  icon: '🩺', desc: 'Hệ chuyên gia Prolog' },
   { id: 'vision', label: 'Quét Ảnh',  icon: '📸', desc: 'AI nhận diện da' },
   { id: 'map',    label: 'Thú Y',     icon: '📍', desc: 'Bản đồ trạm thú y' },
+  { id: 'admin',  label: 'Tri Thức',  icon: '🧠', desc: 'Quản trị luật & bệnh' },
 ];
 
 export default function Sidebar({ activePage, onNavigate, userEmail, onSignOut }) {

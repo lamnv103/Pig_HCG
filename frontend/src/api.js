@@ -24,3 +24,13 @@ export async function diagnose(symptomsDict) {
   const response = await api.post('/api/diagnose', { symptoms: symptomsDict })
   return response.data
 }
+
+export async function getNextQuestion(symptomsDict) {
+  const response = await api.post('/api/next-question', { symptoms: symptomsDict })
+  return response.data
+}
+
+export async function getKnowledgeBase() {
+  const response = await api.get('/api/knowledge')
+  return response.data
+}

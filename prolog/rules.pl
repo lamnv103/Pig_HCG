@@ -6,9 +6,9 @@
 
 :- encoding(utf8).
 
-% Khai báo fact động (Working Memory)
+% Khai báo fact động (Working Memory + Knowledge Admin runtime)
 % known(SymptomId, UserCF). % UserCF có thể âm (từ -1.0 đến 1.0)
-:- dynamic known/2.
+:- dynamic known/2, symptom/2, disease/9, rule/5.
 
 % Priority weighting (configurable per priority level)
 priority_weight(1, 0.8).
@@ -207,6 +207,56 @@ check_symptoms([H|T], MinCF) :-
     PosCF1 is max(0.0, CF1), % Ép giá trị âm về 0 để không phá vỡ logic rule
     PosCF2 is max(0.0, CF2),
     MinCF is min(PosCF1, PosCF2).
+
+% ===================================================================
+% 5A. SUY DIỄN LÙI CHO HỎI ĐÁP ĐỘNG (BACKWARD QUESTIONING)
+% ===================================================================
+
+unknown_symptom(S) :- \+ known(S, _).
+positive_symptom(S) :- known(S, CF), CF > 0.0.
+negative_symptom(S) :- known(S, CF), CF < -0.2.
+
+count_positive([], 0).
+count_positive([H|T], Count) :-
+    count_positive(T, Rest),
+    (positive_symptom(H) -> Count is Rest + 1 ; Count is Rest).
+
+count_unknown([], 0).
+count_unknown([H|T], Count) :-
+    count_unknown(T, Rest),
+    (unknown_symptom(H) -> Count is Rest + 1 ; Count is Rest).
+
+has_negative([H|_]) :- negative_symptom(H), !.
+has_negative([_|T]) :- has_negative(T).
+
+% Chọn một tiền đề còn thiếu của luật đang hỗ trợ một giả thuyết bệnh.
+% Đây là dạng suy diễn lùi thực dụng: bắt đầu từ Disease, quay ngược về các
+% Symptoms còn thiếu trong luật để sinh câu hỏi tiếp theo.
+backward_question_candidate(Disease, RuleId, MissingSymptom, Score) :-
+    rule(RuleId, Symptoms, Disease, RuleCF, Priority),
+    \+ has_negative(Symptoms),
+    member(MissingSymptom, Symptoms),
+    unknown_symptom(MissingSymptom),
+    count_positive(Symptoms, PositiveCount),
+    PositiveCount > 0,
+    count_unknown(Symptoms, UnknownCount),
+    length(Symptoms, TotalCount),
+    TotalCount > 0,
+    priority_weight(Priority, PriorityWeight),
+    CompletionScore is PositiveCount / TotalCount,
+    RuleStrength is RuleCF * PriorityWeight,
+    NeedScore is 1.0 / (UnknownCount + 1),
+    Score is CompletionScore + RuleStrength + NeedScore.
+
+backward_next_question(SymptomId, Disease, RuleId, Score) :-
+    findall(NegScore-S-D-R,
+            (backward_question_candidate(D, R, S, CandidateScore),
+             NegScore is -CandidateScore),
+            Candidates),
+    Candidates \= [],
+    keysort(Candidates, SortedCandidates),
+    SortedCandidates = [BestNegScore-SymptomId-Disease-RuleId|_],
+    Score is -BestNegScore.
 
 % --- FIX 1 & 4: Tính toán CF cho 1 luật, kèm Priority và loại Nhiễu ---
 diagnose_rule(Disease, RuleId, CF_rule_final) :-

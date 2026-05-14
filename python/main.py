@@ -243,11 +243,147 @@ prolog_lock = threading.Lock()
 class SymptomsInput(BaseModel):
     symptoms: dict
 
+class KnowledgeRuleInput(BaseModel):
+    rule_id: str
+    if_symptoms: list[str]
+    then_disease: str
+    cf: float
+    priority: int = 2
+
 def safe_decode(x):
     return x.decode("utf-8") if isinstance(x, bytes) else str(x)
 
 def clamp_cf(value):
     return max(-1.0, min(1.0, float(value)))
+
+def clamp_probability(value):
+    return max(0.0, min(1.0, float(value)))
+
+def fuzzy_label(cf):
+    cf = float(cf)
+    if cf >= 0.85:
+        return "rất mạnh"
+    if cf >= 0.6:
+        return "mạnh"
+    if cf >= 0.3:
+        return "trung bình"
+    if cf > 0:
+        return "yếu"
+    if cf == 0:
+        return "không rõ"
+    return "phủ định"
+
+def load_symptoms_into_prolog(symptoms):
+    list(prolog.query("retractall(known(_, _))"))
+
+    for sym, cf in symptoms.items():
+        if isinstance(cf, dict):
+            for inner_sym, inner_cf in cf.items():
+                clean_cf = clamp_cf(inner_cf)
+                prolog.assertz(f"known({inner_sym}, {clean_cf})")
+            continue
+
+        clean_cf = clamp_cf(cf)
+        prolog.assertz(f"known({sym}, {clean_cf})")
+
+def flatten_symptoms(symptoms):
+    flattened = {}
+    for sym, cf in symptoms.items():
+        if isinstance(cf, dict):
+            for inner_sym, inner_cf in cf.items():
+                flattened[inner_sym] = clamp_cf(inner_cf)
+            continue
+        flattened[sym] = clamp_cf(cf)
+    return flattened
+
+def prolog_list_to_python(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [safe_decode(item) for item in value]
+    return [safe_decode(value)]
+
+def get_rule_detail(rule_id):
+    safe_rule_id = str(rule_id).replace("'", "\\'")
+    query = f"rule('{safe_rule_id}', Symptoms, Disease, CF, Priority)"
+    rows = list(prolog.query(query))
+    if not rows:
+        return None
+
+    row = rows[0]
+    return {
+        "rule_id": safe_decode(rule_id),
+        "symptoms": prolog_list_to_python(row.get("Symptoms")),
+        "disease": safe_decode(row.get("Disease")),
+        "cf": float(row.get("CF", 0)),
+        "priority": int(row.get("Priority", 1)),
+    }
+
+def build_uncertainty_report(disease_id, cf_score, rules_fired, user_symptoms):
+    rule_details = [detail for rule_id in rules_fired if (detail := get_rule_detail(rule_id))]
+    evidence_items = []
+    fuzzy_rule_scores = []
+    bayes_complements = []
+
+    for detail in rule_details:
+        symptom_values = [
+            max(0.0, float(user_symptoms.get(symptom_id, 0)))
+            for symptom_id in detail["symptoms"]
+        ]
+        fuzzy_score = min(symptom_values) if symptom_values else 0.0
+        fuzzy_rule_scores.append(fuzzy_score)
+
+        weighted_likelihood = clamp_probability(detail["cf"] * fuzzy_score)
+        bayes_complements.append(1.0 - weighted_likelihood)
+
+        evidence_items.append({
+            "rule_id": detail["rule_id"],
+            "base_cf": round(detail["cf"], 3),
+            "priority": detail["priority"],
+            "fuzzy_match": round(fuzzy_score * 100, 2),
+            "symptoms": [
+                {
+                    "id": symptom_id,
+                    "cf": round(float(user_symptoms.get(symptom_id, 0)), 3),
+                    "fuzzy_label": fuzzy_label(user_symptoms.get(symptom_id, 0)),
+                }
+                for symptom_id in detail["symptoms"]
+            ],
+        })
+
+    fuzzy_score = max(fuzzy_rule_scores) if fuzzy_rule_scores else cf_score
+    bayes_score = 0.0
+    if bayes_complements:
+        product = 1.0
+        for complement in bayes_complements:
+            product *= complement
+        bayes_score = 1.0 - product
+
+    return {
+        "disease_id": disease_id,
+        "cf_score": round(cf_score * 100, 2),
+        "fuzzy_score": round(fuzzy_score * 100, 2),
+        "bayes_score": round(bayes_score * 100, 2),
+        "note": "CF là điểm chính của hệ chuyên gia; fuzzy và Bayes là điểm tham khảo để giải thích mức khớp triệu chứng.",
+        "evidence": evidence_items,
+    }
+
+def load_knowledge_base():
+    with open(KNOWLEDGE_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def collect_prolog_rules():
+    rows = list(prolog.query("rule(RuleId, Symptoms, Disease, CF, Priority)"))
+    rules = []
+    for row in rows:
+        rules.append({
+            "rule_id": safe_decode(row.get("RuleId")),
+            "if": prolog_list_to_python(row.get("Symptoms")),
+            "then": safe_decode(row.get("Disease")),
+            "cf": float(row.get("CF", 0)),
+            "priority": int(row.get("Priority", 1)),
+        })
+    return rules
 
 # =========================================================
 # API ROUTES
@@ -261,6 +397,58 @@ def home():
         "device": DEVICE,
         "num_classes": len(class_names)
     }
+
+@app.get("/api/knowledge")
+def get_knowledge():
+    try:
+        knowledge_base = load_knowledge_base()
+        return {
+            "status": "success",
+            "metadata": knowledge_base.get("metadata", {}),
+            "symptoms": knowledge_base.get("symptoms", []),
+            "diseases": knowledge_base.get("diseases", []),
+            "rules": collect_prolog_rules(),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/next-question")
+def next_question(data: SymptomsInput):
+    try:
+        with prolog_lock:
+            flattened = flatten_symptoms(data.symptoms)
+            load_symptoms_into_prolog(flattened)
+            rows = list(prolog.query("backward_next_question(SymptomId, Disease, RuleId, Score)"))
+
+            if not rows:
+                return {
+                    "status": "done",
+                    "question": None,
+                    "reason": "Không còn tiền đề thiếu có giá trị suy luận lùi.",
+                }
+
+            row = rows[0]
+            symptom_id = safe_decode(row.get("SymptomId"))
+            symptom_text_rows = list(prolog.query(f"symptom({symptom_id}, Question)"))
+            question_text = symptom_id
+            if symptom_text_rows:
+                question_text = safe_decode(symptom_text_rows[0].get("Question"))
+
+        return {
+            "status": "question",
+            "question": {
+                "id": symptom_id,
+                "question": question_text,
+                "target_disease": safe_decode(row.get("Disease")),
+                "source_rule": safe_decode(row.get("RuleId")),
+                "score": round(float(row.get("Score", 0)), 4),
+                "strategy": "backward_chaining",
+            },
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/predict")
 async def predict_image(file: UploadFile = File(...)):
@@ -312,17 +500,8 @@ async def predict_image(file: UploadFile = File(...)):
 def diagnose_pig(data: SymptomsInput):
     try:
         with prolog_lock:
-            list(prolog.query("retractall(known(_, _))"))
-
-            for sym, cf in data.symptoms.items():
-                if isinstance(cf, dict):
-                    for inner_sym, inner_cf in cf.items():
-                        clean_cf = clamp_cf(inner_cf)
-                        prolog.assertz(f"known({inner_sym}, {clean_cf})")
-                    continue
-
-                clean_cf = clamp_cf(cf)
-                prolog.assertz(f"known({sym}, {clean_cf})")
+            flattened = flatten_symptoms(data.symptoms)
+            load_symptoms_into_prolog(flattened)
 
             results = list(prolog.query("diagnose_all(Result)"))
 
@@ -332,10 +511,12 @@ def diagnose_pig(data: SymptomsInput):
                 disease = safe_decode(item[0])
                 cf = float(item[1])
                 rules_fired = [safe_decode(r) for r in item[2]]
+                cf_score = max(0.0, min(1.0, cf))
                 response.append({
                     "disease": disease,
                     "confidence": round(cf * 100, 2),
-                    "rules_triggered": rules_fired
+                    "rules_triggered": rules_fired,
+                    "uncertainty": build_uncertainty_report(disease, cf_score, rules_fired, flattened)
                 })
 
         return {

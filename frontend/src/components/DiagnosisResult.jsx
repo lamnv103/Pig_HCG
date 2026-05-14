@@ -113,7 +113,51 @@ export default function DiagnosisResult({ results, isLoading, onRestart, history
                           </li>
                         ))}
                       </ul>
-                      <p className="mt-3 text-[10px] text-slate-500 italic">* Hệ thống dùng thuật toán Suy diễn lùi (Backward Chaining) & Hệ số Certainty Factor để tính toán.</p>
+
+                      {result.uncertainty && (
+                        <div className="mt-4 rounded-xl border border-slate-700 bg-slate-900/70 p-3">
+                          <p className="mb-2 font-bold text-sky-300">📊 Phân tích không chắc chắn</p>
+                          <div className="grid grid-cols-3 gap-2 text-center">
+                            <div className="rounded-lg bg-slate-800 p-2">
+                              <p className="text-[10px] uppercase text-slate-500">CF</p>
+                              <p className="font-bold text-emerald-300">{result.uncertainty.cf_score}%</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-800 p-2">
+                              <p className="text-[10px] uppercase text-slate-500">Fuzzy</p>
+                              <p className="font-bold text-amber-300">{result.uncertainty.fuzzy_score}%</p>
+                            </div>
+                            <div className="rounded-lg bg-slate-800 p-2">
+                              <p className="text-[10px] uppercase text-slate-500">Bayes</p>
+                              <p className="font-bold text-blue-300">{result.uncertainty.bayes_score}%</p>
+                            </div>
+                          </div>
+                          <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{result.uncertainty.note}</p>
+
+                          {(result.uncertainty.evidence || []).length > 0 && (
+                            <div className="mt-3 space-y-2">
+                              {result.uncertainty.evidence.map((item) => (
+                                <div key={item.rule_id} className="rounded-lg bg-slate-800/80 p-2">
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="font-mono text-[11px] font-bold text-emerald-200">{item.rule_id}</span>
+                                    <span className="text-[10px] text-slate-400">
+                                      Base CF {item.base_cf} · Priority {item.priority} · Fuzzy {item.fuzzy_match}%
+                                    </span>
+                                  </div>
+                                  <div className="mt-2 flex flex-wrap gap-1.5">
+                                    {(item.symptoms || []).map((symptom) => (
+                                      <span key={symptom.id} className="rounded bg-slate-700 px-2 py-1 font-mono text-[10px] text-slate-300">
+                                        {symptom.id}: {symptom.cf} ({symptom.fuzzy_label})
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <p className="mt-3 text-[10px] text-slate-500 italic">* Hệ thống dùng suy diễn lùi để chọn câu hỏi, Certainty Factor là điểm chính; Fuzzy/Bayes là lớp giải thích tham khảo.</p>
                     </div>
                   )}
                 </div>

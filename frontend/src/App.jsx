@@ -8,6 +8,7 @@ import BottomNav from './components/layout/BottomNav'
 
 import AuthPage from './pages/AuthPage'
 import HomePage from './pages/HomePage'
+import KnowledgeAdminPage from './pages/KnowledgeAdminPage'
 import VetMapPage from './pages/VetMapPage'
 
 import WelcomeScreen from './components/WelcomeScreen'
@@ -26,7 +27,7 @@ export default function App() {
   const [session, setSession] = useState(null)
   const [isAuthLoading, setIsAuthLoading] = useState(true)
 
-  // Page: 'home' | 'expert' | 'vision' | 'map'
+  // Page: 'home' | 'expert' | 'vision' | 'map' | 'admin'
   const [activePage, setActivePage] = useState('home')
 
   // Expert flow state
@@ -197,6 +198,8 @@ export default function App() {
         )
       case 'map':
         return <VetMapPage />
+      case 'admin':
+        return <KnowledgeAdminPage />
       default:
         return (
           <HomePage

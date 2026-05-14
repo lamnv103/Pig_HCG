@@ -1,17 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { symptomCatalog, rules } from '../data/knowledge'; // Đảm bảo knowledge.js có export 'rules'
+import { getNextQuestion } from '../api';
 
 export default function DynamicInterview({ currentKnown, onComplete }) {
   const [answers, setAnswers] = useState({});
   const [currentIndex, setCurrentIndex] = useState(0); // Dùng làm askCount
   const [sliderValue, setSliderValue] = useState(0.5);
   const [animState, setAnimState] = useState('active');
+  const [backendQuestion, setBackendQuestion] = useState(null);
+  const [isQuestionLoading, setIsQuestionLoading] = useState(false);
 
   // 1. TỔNG HỢP KIẾN THỨC HIỆN TẠI (Triệu chứng ban đầu + Câu trả lời mới)
   const allKnown = useMemo(() => ({ ...currentKnown, ...answers }), [currentKnown, answers]);
 
   // 2. BỘ NÃO SUY LUẬN ĐỘNG (HEURISTIC ENGINE)
-  const currentQuestion = useMemo(() => {
+  const heuristicQuestion = useMemo(() => {
     let bestScore = -1;
     let nextSymId = null;
 
@@ -68,17 +71,45 @@ export default function DynamicInterview({ currentKnown, onComplete }) {
 
   }, [allKnown, currentIndex]);
 
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadBackwardQuestion() {
+      setBackendQuestion(null);
+      setIsQuestionLoading(true);
+      try {
+        const payload = await getNextQuestion(allKnown);
+        if (!isCurrent) return;
+        setBackendQuestion(payload?.question || null);
+      } catch (error) {
+        if (!isCurrent) return;
+        console.warn('Không thể lấy câu hỏi suy diễn lùi từ backend:', error);
+        setBackendQuestion(null);
+      } finally {
+        if (isCurrent) setIsQuestionLoading(false);
+      }
+    }
+
+    loadBackwardQuestion();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [allKnown]);
+
+  const currentQuestion = backendQuestion || heuristicQuestion;
+
   // 3. ĐIỀU KIỆN DỪNG ĐỘNG (DYNAMIC STOP)
   useEffect(() => {
     // Nếu thuật toán trả về null (đã đủ dữ kiện chẩn đoán) HOẶC đã hỏi quá 7 câu (tránh làm phiền)
-    if (!currentQuestion || currentIndex >= 7) {
+    if (!isQuestionLoading && (!currentQuestion || currentIndex >= 7)) {
       // Đợi 500ms để người dùng xem nốt animation rồi mới chuyển màn hình
       const timer = setTimeout(() => {
         onComplete(answers);
       }, 500);
       return () => clearTimeout(timer);
     }
-  }, [currentQuestion, currentIndex, answers, onComplete]);
+  }, [currentQuestion, currentIndex, answers, onComplete, isQuestionLoading]);
 
   // 4. XỬ LÝ TRẢ LỜI & HIỆU ỨNG TRƯỢT
   const handleAnswer = (cfValue) => {
@@ -98,6 +129,15 @@ export default function DynamicInterview({ currentKnown, onComplete }) {
   };
 
   // Render trạng thái chờ khi đang chuyển màn hình (do useEffect trigger onComplete)
+  if (isQuestionLoading && !currentQuestion) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center py-12 animate-pulse">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-500 mb-4"></div>
+        <p className="text-slate-500 font-medium">Backend Prolog đang chọn câu hỏi suy diễn lùi...</p>
+      </div>
+    );
+  }
+
   if (!currentQuestion) {
     return (
       <div className="flex h-full flex-col items-center justify-center py-12 animate-pulse">
@@ -120,7 +160,9 @@ export default function DynamicInterview({ currentKnown, onComplete }) {
       <div className="mb-8 w-full max-w-lg">
         <div className="mb-2 flex justify-between text-xs font-bold text-slate-400 uppercase tracking-widest">
           <span>Đang điều tra manh mối...</span>
-          <span className="text-emerald-600">Câu hỏi thứ {currentIndex + 1}</span>
+          <span className="text-emerald-600">
+            {backendQuestion ? 'Suy diễn lùi' : 'Heuristic'} · Câu {currentIndex + 1}
+          </span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 flex gap-1">
            {Array.from({ length: currentIndex + 1 }).map((_, i) => (
@@ -140,6 +182,11 @@ export default function DynamicInterview({ currentKnown, onComplete }) {
           <h3 className="text-xl font-semibold text-slate-800 md:text-2xl leading-snug">
             {currentQuestion.question}
           </h3>
+          {currentQuestion.source_rule && (
+            <p className="absolute -bottom-4 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full border border-emerald-100 bg-white px-3 py-1 text-xs font-bold text-slate-500 shadow-sm">
+              Luật gợi ý: {currentQuestion.source_rule}
+            </p>
+          )}
         </div>
 
         {/* THANH TRƯỢT CF */}

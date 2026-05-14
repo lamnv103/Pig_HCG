@@ -29,6 +29,7 @@ function normalizeExpertResult(result) {
     treatment: result?.treatment || detail?.treatment || null,
     cause: result?.cause || detail?.cause || null,
     rules_triggered: result?.rules_triggered || [],
+    uncertainty: result?.uncertainty || null,
   }
 }
 

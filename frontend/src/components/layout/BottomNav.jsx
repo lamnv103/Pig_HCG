@@ -5,6 +5,7 @@ const NAV_ITEMS = [
   { id: 'expert', label: 'Hỏi Bệnh',  icon: '🩺' },
   { id: 'vision', label: 'Quét Ảnh',  icon: '📸' },
   { id: 'map',    label: 'Thú Y',     icon: '📍' },
+  { id: 'admin',  label: 'Tri Thức',  icon: '🧠' },
 ];
 
 export default function BottomNav({ activePage, onNavigate }) {
