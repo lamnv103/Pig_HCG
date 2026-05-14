@@ -7,6 +7,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import threading
 
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
@@ -250,6 +251,21 @@ class KnowledgeRuleInput(BaseModel):
     cf: float
     priority: int = 2
 
+class KnowledgeSymptomInput(BaseModel):
+    id: str
+    question: str
+
+class KnowledgeDiseaseInput(BaseModel):
+    id: str
+    name: str
+    group: str = "custom"
+    age_focus: str = "chưa xác định"
+    hallmark: str = ""
+    cause: str = ""
+    prevention: str = ""
+    treatment: str = ""
+    cf_threshold: float = 0.7
+
 def safe_decode(x):
     return x.decode("utf-8") if isinstance(x, bytes) else str(x)
 
@@ -258,6 +274,24 @@ def clamp_cf(value):
 
 def clamp_probability(value):
     return max(0.0, min(1.0, float(value)))
+
+def validate_prolog_id(value, field_name="id"):
+    clean_value = str(value).strip()
+    if not re.fullmatch(r"[A-Za-z][A-Za-z0-9_]*", clean_value):
+        raise HTTPException(
+            status_code=400,
+            detail=f"{field_name} chỉ được dùng chữ cái, số, dấu gạch dưới và phải bắt đầu bằng chữ cái.",
+        )
+    return clean_value
+
+def prolog_text(value):
+    return str(value or "").replace("\\", "\\\\").replace("'", "\\'")
+
+def quoted_atom(value, field_name="id"):
+    return f"'{prolog_text(validate_prolog_id(value, field_name))}'"
+
+def plain_atom(value, field_name="id"):
+    return validate_prolog_id(value, field_name)
 
 def fuzzy_label(cf):
     cf = float(cf)
@@ -385,6 +419,112 @@ def collect_prolog_rules():
         })
     return rules
 
+def collect_prolog_symptoms():
+    rows = list(prolog.query("symptom(SymptomId, Question)"))
+    symptoms = []
+    for row in rows:
+        symptoms.append({
+            "id": safe_decode(row.get("SymptomId")),
+            "question": safe_decode(row.get("Question")),
+        })
+    return symptoms
+
+def collect_prolog_diseases():
+    rows = list(prolog.query("disease(Id, Name, Group, AgeFocus, Hallmark, Cause, Prevention, Treatment, Threshold)"))
+    diseases = []
+    for row in rows:
+        diseases.append({
+            "id": safe_decode(row.get("Id")),
+            "name": safe_decode(row.get("Name")),
+            "group": safe_decode(row.get("Group")),
+            "age_focus": safe_decode(row.get("AgeFocus")),
+            "hallmark": safe_decode(row.get("Hallmark")),
+            "cause": safe_decode(row.get("Cause")),
+            "prevention": safe_decode(row.get("Prevention")),
+            "treatment": safe_decode(row.get("Treatment")),
+            "cf_threshold": float(row.get("Threshold", 0)),
+        })
+    return diseases
+
+def upsert_prolog_symptom(payload: KnowledgeSymptomInput):
+    symptom_id = plain_atom(payload.id, "symptom id")
+    question = prolog_text(payload.question)
+    if not question.strip():
+        raise HTTPException(status_code=400, detail="Câu hỏi triệu chứng không được để trống.")
+
+    list(prolog.query(f"retractall(symptom({symptom_id}, _))"))
+    prolog.assertz(f"symptom({symptom_id}, '{question}')")
+    return {"id": symptom_id, "question": payload.question}
+
+def delete_prolog_symptom(symptom_id: str):
+    clean_id = plain_atom(symptom_id, "symptom id")
+    list(prolog.query(f"retractall(symptom({clean_id}, _))"))
+    return clean_id
+
+def upsert_prolog_disease(payload: KnowledgeDiseaseInput):
+    disease_id = plain_atom(payload.id, "disease id")
+    threshold = clamp_probability(payload.cf_threshold)
+    values = [
+        payload.name,
+        payload.group,
+        payload.age_focus,
+        payload.hallmark,
+        payload.cause,
+        payload.prevention,
+        payload.treatment,
+    ]
+    if not payload.name.strip():
+        raise HTTPException(status_code=400, detail="Tên bệnh không được để trống.")
+
+    escaped_values = [f"'{prolog_text(value)}'" for value in values]
+    list(prolog.query(f"retractall(disease({disease_id}, _, _, _, _, _, _, _, _))"))
+    prolog.assertz(
+        f"disease({disease_id}, {escaped_values[0]}, {escaped_values[1]}, {escaped_values[2]}, "
+        f"{escaped_values[3]}, {escaped_values[4]}, {escaped_values[5]}, {escaped_values[6]}, {threshold})"
+    )
+    return {
+        "id": disease_id,
+        "name": payload.name,
+        "group": payload.group,
+        "age_focus": payload.age_focus,
+        "hallmark": payload.hallmark,
+        "cause": payload.cause,
+        "prevention": payload.prevention,
+        "treatment": payload.treatment,
+        "cf_threshold": threshold,
+    }
+
+def delete_prolog_disease(disease_id: str):
+    clean_id = plain_atom(disease_id, "disease id")
+    list(prolog.query(f"retractall(disease({clean_id}, _, _, _, _, _, _, _, _))"))
+    return clean_id
+
+def upsert_prolog_rule(payload: KnowledgeRuleInput):
+    rule_id = quoted_atom(payload.rule_id, "rule id")
+    symptoms = [plain_atom(symptom_id, "symptom id") for symptom_id in payload.if_symptoms]
+    disease_id = plain_atom(payload.then_disease, "disease id")
+    cf = clamp_probability(payload.cf)
+    priority = max(1, min(3, int(payload.priority)))
+
+    if not symptoms:
+        raise HTTPException(status_code=400, detail="Luật cần ít nhất một triệu chứng IF.")
+
+    symptoms_list = "[" + ",".join(symptoms) + "]"
+    list(prolog.query(f"retractall(rule({rule_id}, _, _, _, _))"))
+    prolog.assertz(f"rule({rule_id}, {symptoms_list}, {disease_id}, {cf}, {priority})")
+    return {
+        "rule_id": payload.rule_id,
+        "if": symptoms,
+        "then": disease_id,
+        "cf": cf,
+        "priority": priority,
+    }
+
+def delete_prolog_rule(rule_id: str):
+    clean_rule_id = quoted_atom(rule_id, "rule id")
+    list(prolog.query(f"retractall(rule({clean_rule_id}, _, _, _, _))"))
+    return rule_id
+
 # =========================================================
 # API ROUTES
 # =========================================================
@@ -405,10 +545,76 @@ def get_knowledge():
         return {
             "status": "success",
             "metadata": knowledge_base.get("metadata", {}),
-            "symptoms": knowledge_base.get("symptoms", []),
-            "diseases": knowledge_base.get("diseases", []),
+            "symptoms": collect_prolog_symptoms(),
+            "diseases": collect_prolog_diseases(),
             "rules": collect_prolog_rules(),
         }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/knowledge/symptoms")
+def save_knowledge_symptom(payload: KnowledgeSymptomInput):
+    try:
+        with prolog_lock:
+            symptom = upsert_prolog_symptom(payload)
+        return {"status": "success", "symptom": symptom}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/knowledge/symptoms/{symptom_id}")
+def remove_knowledge_symptom(symptom_id: str):
+    try:
+        with prolog_lock:
+            deleted_id = delete_prolog_symptom(symptom_id)
+        return {"status": "success", "deleted_id": deleted_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/knowledge/diseases")
+def save_knowledge_disease(payload: KnowledgeDiseaseInput):
+    try:
+        with prolog_lock:
+            disease = upsert_prolog_disease(payload)
+        return {"status": "success", "disease": disease}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/knowledge/diseases/{disease_id}")
+def remove_knowledge_disease(disease_id: str):
+    try:
+        with prolog_lock:
+            deleted_id = delete_prolog_disease(disease_id)
+        return {"status": "success", "deleted_id": deleted_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/knowledge/rules")
+def save_knowledge_rule(payload: KnowledgeRuleInput):
+    try:
+        with prolog_lock:
+            rule = upsert_prolog_rule(payload)
+        return {"status": "success", "rule": rule}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.delete("/api/knowledge/rules/{rule_id}")
+def remove_knowledge_rule(rule_id: str):
+    try:
+        with prolog_lock:
+            deleted_id = delete_prolog_rule(rule_id)
+        return {"status": "success", "deleted_id": deleted_id}
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

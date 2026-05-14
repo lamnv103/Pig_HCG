@@ -34,3 +34,33 @@ export async function getKnowledgeBase() {
   const response = await api.get('/api/knowledge')
   return response.data
 }
+
+export async function saveKnowledgeRule(rule) {
+  const response = await api.post('/api/knowledge/rules', rule)
+  return response.data
+}
+
+export async function deleteKnowledgeRule(ruleId) {
+  const response = await api.delete(`/api/knowledge/rules/${encodeURIComponent(ruleId)}`)
+  return response.data
+}
+
+export async function saveKnowledgeSymptom(symptom) {
+  const response = await api.post('/api/knowledge/symptoms', symptom)
+  return response.data
+}
+
+export async function deleteKnowledgeSymptom(symptomId) {
+  const response = await api.delete(`/api/knowledge/symptoms/${encodeURIComponent(symptomId)}`)
+  return response.data
+}
+
+export async function saveKnowledgeDisease(disease) {
+  const response = await api.post('/api/knowledge/diseases', disease)
+  return response.data
+}
+
+export async function deleteKnowledgeDisease(diseaseId) {
+  const response = await api.delete(`/api/knowledge/diseases/${encodeURIComponent(diseaseId)}`)
+  return response.data
+}
