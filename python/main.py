@@ -25,11 +25,41 @@ from pydantic import BaseModel
 from pyswip import Prolog
 
 # =========================================================
-# CONFIG - ĐƯỜNG DẪN TỪ THƯ MỤC python/
+# CONFIG - ĐƯỜNG DẪN & CLOUD ENV
 # =========================================================
 
-# Lấy đường dẫn gốc của project (một level lên từ python/)
-BASE_DIR = Path(__file__).parent.parent.absolute()
+APP_DIR = Path(__file__).parent.absolute()
+
+def parse_allowed_origins():
+    raw_origins = os.getenv("FRONTEND_ORIGINS", "")
+    origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+    if origins:
+        return origins
+
+    # Local/dev fallback. Khi deploy, set FRONTEND_ORIGINS bằng link Vercel thật.
+    return [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+    ]
+
+def resolve_project_dir():
+    candidates = [
+        APP_DIR,          # Docker/Hugging Face: /app/main.py + /app/prolog + /app/outputs
+        APP_DIR.parent,   # Local repo: project/python/main.py + project/prolog + project/outputs
+    ]
+
+    for candidate in candidates:
+        if (
+            (candidate / "prolog" / "rules.pl").exists()
+            and (candidate / "outputs" / "protonet" / "best_encoder.pth").exists()
+        ):
+            return candidate
+
+    # Fallback để log đường dẫn dễ debug nếu thiếu model/tri thức trên cloud.
+    return APP_DIR
+
+BASE_DIR = resolve_project_dir()
+ALLOWED_ORIGINS = parse_allowed_origins()
 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -44,6 +74,7 @@ print(f"📂 Project root: {BASE_DIR}")
 print(f"📍 Model path : {MODEL_PATH}")
 print(f"📍 Rules path : {RULES_PATH}")
 print(f"📍 Knowledge  : {KNOWLEDGE_PATH}")
+print(f"🌐 CORS origins: {ALLOWED_ORIGINS}")
 
 # =========================================================
 # FASTAPI
@@ -53,7 +84,7 @@ app = FastAPI(title="Pig Disease AI - Unified API")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
